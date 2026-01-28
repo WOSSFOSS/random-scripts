@@ -12,7 +12,6 @@ class CustomFormatSpecificationImplementation(StrEnum):
     ReleaseTitleSpecification = "ReleaseTitleSpecification"
     LanguageSpecification = "LanguageSpecification"
     IndexerFlagSpecification = "IndexerFlagSpecification"
-    SourceSpecification = "SourceSpecification"
     ResolutionSpecification = "ResolutionSpecification"
     SizeSpecification = "SizeSpecification"
     ReleaseGroupSpecification = "ReleaseGroupSpecification"
@@ -25,15 +24,20 @@ class CustomFormatSpecificationImplementation(StrEnum):
     QualityModifierSpecification = "QualityModifierSpecification"
     YearSpecification = "YearSpecification"
 
+    # This is hared between both but the values are different, meaning that CFs won't work as expected.
+    SourceSpecification = "SourceSpecification"
+
 
 SONARR_ONLY_IMPLEMENTATIONS = {
     CustomFormatSpecificationImplementation.ReleaseTypeSpecification,
+    CustomFormatSpecificationImplementation.SourceSpecification,
 }
 
 RADARR_ONLY_IMPLEMENTATIONS = {
     CustomFormatSpecificationImplementation.EditionSpecification,
     CustomFormatSpecificationImplementation.QualityModifierSpecification,
     CustomFormatSpecificationImplementation.YearSpecification,
+    CustomFormatSpecificationImplementation.SourceSpecification,
 }
 
 
