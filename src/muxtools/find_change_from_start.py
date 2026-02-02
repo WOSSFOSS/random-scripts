@@ -1,42 +1,32 @@
 import cv2
 
-from typing import Annotated
+from typing import Annotated, TypedDict, TYPE_CHECKING
 
 from typer import Argument, Option
 from ..app import app
 
+if TYPE_CHECKING:
+    from cv2.typing import MatLike
+    from cv2 import UMat
 
-def find_change_from_start_inner(
-    video_path, threshold=0, min_changed_pixels=50
+    Mat = MatLike | UMat
+
+
+def find_change_from_first_frame(
+    video_path: str | cv2.VideoCapture,
+    frame: "Mat",
+    threshold: int = 0,
+    min_changed_pixels: int = 50,
 ) -> tuple[int, float]:
-    """
-    Consumes video one frame at a time to find where it diverges from Frame 1.
-
-    Args:
-        video_path (str): Path to video file.
-        threshold (int): Sensitivity (0-255). Lower = detects subtle changes.
-                         Higher = ignores compression artifacts.
-        min_changed_pixels (int): How many pixels must change to trigger detection.
-
-    Returns:
-        tuple[int, float]: Frame number where change is detected and FPS of the video.
-                           Returns -1 if no significant change is found.
-    """
-
-    # 1. Open the video stream
-    cap = cv2.VideoCapture(video_path)
-
-    try:
+    if isinstance(video_path, str):
+        cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise FileNotFoundError(f"Could not open video file: {video_path}")
-
-        # 2. Read Frame 1 (The Reference)
-        ret, frame1 = cap.read()
-        if not ret:
-            raise ValueError("Video file is empty or unreadable.")
-
+    else:
+        cap = video_path
+    try:
         # Convert to grayscale to reduce complexity and ignore color noise
-        frame1_gray = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+        frame1_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Optional: Apply slight blur to reduce compression artifact noise
         frame1_gray = cv2.GaussianBlur(frame1_gray, (21, 21), 0)
@@ -83,6 +73,42 @@ def find_change_from_start_inner(
         cap.release()
 
 
+def find_change_from_start_inner(
+    video_path, threshold=0, min_changed_pixels=50
+) -> tuple[int, float, "Mat"]:
+    """
+    Consumes video one frame at a time to find where it diverges from Frame 1.
+
+    Args:
+        video_path (str): Path to video file.
+        threshold (int): Sensitivity (0-255). Lower = detects subtle changes.
+                         Higher = ignores compression artifacts.
+        min_changed_pixels (int): How many pixels must change to trigger detection.
+
+    Returns:
+        tuple[int, float, Mat]:
+        - Frame number where significant change is detected, or -1 if none found.
+        - Frames per second of the video.
+        - The first frame of the video as a Mat object.
+    """
+
+    # 1. Open the video stream
+    cap = cv2.VideoCapture(video_path)
+
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open video file: {video_path}")
+
+    # 2. Read Frame 1 (The Reference)
+    ret, frame1 = cap.read()
+    if not ret:
+        raise ValueError("Video file is empty or unreadable.")
+
+    frame_num, fps = find_change_from_first_frame(
+        cap, frame1, threshold=threshold, min_changed_pixels=min_changed_pixels
+    )
+    return frame_num + 1, fps, frame1  # +1 to account for the first frame read earlier
+
+
 @app.command()
 def find_change_from_start(
     video_path: Annotated[
@@ -111,7 +137,7 @@ def find_change_from_start(
     :param threshold: Sensitivity (0-255). Lower = detects subtle changes. Higher = ignores compression artifacts.
     :param min_changed_pixels: How many pixels must change to trigger detection.
     """
-    frame_diff_at, fps = find_change_from_start_inner(
+    frame_diff_at, fps, _ = find_change_from_start_inner(
         video_path=video_path,
         threshold=threshold,
         min_changed_pixels=min_changed_pixels,
