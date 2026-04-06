@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.8.15-python3.13-trixie-slim
+FROM ghcr.io/astral-sh/uv:0.11.2-python3.13-trixie-slim
 
 WORKDIR /app
 COPY ./.python-version ./.python-version
